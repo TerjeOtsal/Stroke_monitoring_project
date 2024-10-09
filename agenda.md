@@ -17,6 +17,7 @@
 
 ## WearableDevice:
 1. 3D print klokkebeholder
+2. Lag csv fil
 
 ## WebApp
 1. Hallo
