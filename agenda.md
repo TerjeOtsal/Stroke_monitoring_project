@@ -21,4 +21,7 @@
 2. Lag csv fil
 
 ## WebApp
-1. Hallo
+1. Lag brukergrensesnitt. 
+2. Lag grafer for rå data. 
+3. Lag en model til å klassifisere data. 
+4. Lag en ny side som viser klassene (aktivitetene) og hvor mye en pasient har gjort de. 
