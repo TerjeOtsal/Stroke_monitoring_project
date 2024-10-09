@@ -11,3 +11,9 @@ Note: Only while the environment is active can you install python packages to it
 
 4. Now run the flask app in debug mode with the following command:
     $ flask run --debug
+
+
+Objectives: 
+- Create a web-based user interface to display all the raw data from the wearable device. 
+- Interperite and classify the data to show activities/exersices. 
+
