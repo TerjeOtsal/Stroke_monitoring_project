@@ -16,4 +16,5 @@ Note: Only while the environment is active can you install python packages to it
 Objectives: 
 - Create a web-based user interface to display all the raw data from the wearable device. 
 - Interperite and classify the data to show activities/exersices. 
+- Create a button to automatically locate the files on the device and use them to update the local database. 
 
