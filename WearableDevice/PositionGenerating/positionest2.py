@@ -5,7 +5,7 @@ from pykalman import KalmanFilter
 import matplotlib.pyplot as plt
 
 # Steg 1: Les sensordata fra CSV-fil
-df = pd.read_csv('sensor_data.csv')
+df = pd.read_csv('sensor_data2.csv')
 
 # Ekstraher nødvendige kolonner
 timestamps = df['timestamp'].values
@@ -13,7 +13,8 @@ acc_data = df[['acc_x', 'acc_y', 'acc_z']].values
 gyro_data = df[['gyro_x', 'gyro_y', 'gyro_z']].values
 
 # Beregn tidsdifferanser mellom målinger (delta_t)
-delta_t = np.diff(timestamps) / 1000.0  # antatt at tidsstempel er i millisekunder
+#delta_t = np.diff(timestamps)  # Antatt at tidsstempel allerede er i sekunder
+delta_t = np.diff(timestamps) / 1000.0 
 
 # Funksjon for å oppdatere posisjon fra akselerasjon
 def update_position(acc, prev_vel, prev_pos, dt):
@@ -23,23 +24,27 @@ def update_position(acc, prev_vel, prev_pos, dt):
     new_pos = prev_pos + new_vel * dt
     return new_vel, new_pos
 
-# Start med null hastighet og posisjon (arm hengende ned)
-position = np.array([0, 0, 0])  # Startposisjon
-velocity = np.array([0, 0, 0])  # Start med null hastighet
-positions = [position]  # Liste for å lagre posisjonene
+# Gravitasjon (kan justeres basert på måleforholdene)
+gravity = np.array([0, 0, 9.81])  # Standard tyngdekraft i z-retning (kan være nødvendigvis i lokale akser)
+
+# Start med null hastighet og posisjon
+initial_velocity = np.array([0, 0, 0])  # Start med null hastighet
+initial_position = np.array([0, 0, 0])  # Start med ukjent posisjon
+positions = [initial_position]  # Liste for å lagre posisjonene
 
 # Steg 2: Beregn posisjon basert på akselerometerdataene
 for i in range(1, len(acc_data)):
-    acc = acc_data[i]
+    acc = acc_data[i] - gravity  # Fjern gravitasjonen fra akselerasjonen
     dt = delta_t[i-1]
-    velocity, position = update_position(acc, velocity, position, dt)
+    velocity, position = update_position(acc, initial_velocity, positions[-1], dt)
     
-    # Begrens posisjon innenfor armens rekkevidde (50 cm)
-    if np.linalg.norm(position) <= 0.50:  # 50 cm rekkevidde
-        positions.append(position)
-    else:
-        positions.append(positions[-1])  # Behold forrige posisjon dersom vi er utenfor rekkevidden
+    # Begrens posisjon innenfor armens rekkevidde (55 cm)
+    #if np.linalg.norm(position) <= 0.55:  # 55 cm rekkevidde
+    #    positions.append(position)
+    #else:
+    #    positions.append(positions[-1])  # Behold forrige posisjon dersom vi er utenfor rekkevidden
 
+    positions.append(position)
 positions = np.array(positions)
 
 # Steg 3: Kalman-filter for glatting
@@ -50,7 +55,7 @@ observation_matrix = np.zeros((3, 6))  # Målematrisen (vi observerer akselerasj
 observation_matrix[:, :3] = np.eye(3)
 
 # Starttilstander
-initial_state_mean = np.hstack([positions[0], np.zeros(3)])  # Posisjon og null-hastighet
+initial_state_mean = np.hstack([positions[0], np.zeros(3)])  # Bruk første observerte posisjon og null-hastighet
 
 # Kalman-filter konfigurering
 kf = KalmanFilter(
@@ -80,20 +85,14 @@ filtered_df.to_csv('filtered_positions.csv', index=False)
 
 print("Filtrerte posisjoner er lagret i 'filtered_positions.csv'.")
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-# Lag 3D-plot av filtrerte posisjoner
+# Steg 5: Plot de filtrerte posisjonene i et 3D-plot
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-# Ekstrakter timestamp og filtrerte posisjoner
-timestamps = filtered_df['timestamp']
+# Plot dataene i 3D
 x = filtered_df['filtered_x']
 y = filtered_df['filtered_y']
 z = filtered_df['filtered_z']
-
-# Plot dataene i 3D
 ax.plot(x, y, z, label='Filtrert armposisjon')
 
 # Etiketter
@@ -102,6 +101,4 @@ ax.set_ylabel('Y posisjon (meter)')
 ax.set_zlabel('Z posisjon (meter)')
 ax.set_title('Armens bevegelse i 3D over tid')
 
-# Vis plottet
 plt.show()
-

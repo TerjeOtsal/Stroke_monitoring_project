@@ -1,4 +1,4 @@
-timestamp, acc_x, acc_y, acc_z, gyro_x, gyro_y, gyro_z
+timestamp,acc_x,acc_y,acc_z,gyro_x,gyro_y,gyro_z
 3.38,2.09,3.63,8.47,1.45,2.78,4.53
 3.94,2.75,2.98,6.64,1.05,0.02,0.55
 4.50,3.04,2.02,9.97,0.12,0.24,0.63
