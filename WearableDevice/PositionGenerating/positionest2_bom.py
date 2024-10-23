@@ -1,9 +1,8 @@
 import numpy as np
 import pandas as pd
-from scipy.linalg import block_diag
 from pykalman import KalmanFilter
-import matplotlib.pyplot as plt
 import math
+import matplotlib.pyplot as plt
 
 # Steg 1: Les sensordata fra CSV-fil
 df = pd.read_csv('sensor_data3.csv')
@@ -17,6 +16,12 @@ mag_data = df[['mag_x', 'mag_y', 'mag_z']].values  # Magnetometer data
 # Beregn tidsdifferanser mellom målinger (delta_t)
 delta_t = np.diff(timestamps)
 
+def normalize(data):
+    return (data - np.min(data, axis=0)) / (np.max(data, axis=0) - np.min(data, axis=0))
+
+# Normalize accelerometer and gyroscope data
+acc_data = normalize(acc_data)
+gyro_data = normalize(gyro_data)
 # Gravitasjon (antatt konstant langs z-aksen)
 gravity = np.array([0, 0, 9.81])
 
@@ -113,19 +118,33 @@ filtered_df.to_csv('filtered_positions.csv', index=False)
 print("Filtrerte posisjoner er lagret i 'filtered_positions.csv'.")
 
 # Steg 5: Plot de filtrerte posisjonene i et 3D-plot
+import matplotlib.pyplot as plt
+
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 
-# Plot dataene i 3D
+# Plot dataene som punkter i 3D
 x = filtered_df['filtered_x']
 y = filtered_df['filtered_y']
 z = filtered_df['filtered_z']
-ax.plot(x, y, z, label='Filtrert armposisjon')
+
+# Increase the size of the points for better visibility
+point_size = 5  # Adjust the size as needed
+ax.scatter(x, y, z, label='Filtrert armposisjon', color='b', s=point_size)  # Use scatter for individual points
 
 # Etiketter
 ax.set_xlabel('X posisjon (meter)')
 ax.set_ylabel('Y posisjon (meter)')
 ax.set_zlabel('Z posisjon (meter)')
-ax.set_title('Armens bevegelse i 3D over tid')
+ax.set_title('Filtrerte posisjoner i 3D')
 
+# Set the limits for each axis to zoom in on the data
+ax.set_xlim([min(x) - 0.5, max(x) + 0.5])  # Adjust limits to zoom in on differences
+ax.set_ylim([min(y) - 0.5, max(y) + 0.5])  # Adjust limits to zoom in on differences
+ax.set_zlim([min(z) - 0.5, max(z) + 0.5])  # Adjust limits to zoom in on differences
+
+# Optional: Adjust the viewing angle for better perspective
+ax.view_init(elev=100, azim=20)  # Elevation and azimuthal angle
+
+plt.legend()
 plt.show()
