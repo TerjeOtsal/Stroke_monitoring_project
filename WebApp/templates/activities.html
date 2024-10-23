@@ -9,29 +9,29 @@
     <nav>
         <div>Stroke Striders</div>
         <div>
-            <a href="{{ url_for('activities') }}">Activities</a>
-            <a href="{{ url_for('home') }}" class="highlighted">Raw Data</a>
+            <a href="{{ url_for('activities') }}" class="highlighted">Activities</a>
+            <a href="{{ url_for('home') }}">Raw Data</a>
         </div>
     </nav>
 
     <header>
-        <h2>Raw data</h2>
+        <h2>Activities</h2>
     </header>
 
     <main>
         <div class="chart-container">
-            <h3>Accelerometer</h3>
-            <canvas id="accelChart"></canvas>
+            <h3>Acitivty 1</h3>
+            <canvas id="oneChart"></canvas>
         </div>
         
         <div class="chart-container">
-            <h3>Gyroscope</h3>
-            <canvas id="gyroChart"></canvas>
+            <h3>Acitivty 2</h3>
+            <canvas id="twoChart"></canvas>
         </div>
     
         <div class="chart-container">
-            <h3>Magnetometer</h3>
-            <canvas id="magnetoChart"></canvas>
+            <h3>Acitivty 3</h3>
+            <canvas id="threeChart"></canvas>
         </div>
     </main>
 

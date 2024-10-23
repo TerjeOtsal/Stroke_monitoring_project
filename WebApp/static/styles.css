@@ -1,7 +1,23 @@
+:root {
+    --color-light: #f4fafd;
+    --color-1: #344e5c;
+    --color-2: #4ab19d;
+    --color-3: #efc958;
+    --color-4: #e17a47;
+    --color-5: #ef3d59;
+}
+
 * {
     padding: 0;
     margin: 0;
     box-sizing: border-box;
+    font-family: "Fira Sans", sans-serif;
+    letter-spacing: 0.04rem;
+}
+
+a {
+    text-decoration: none;
+    color: var(--color-light);
 }
 
 body {
@@ -12,10 +28,26 @@ body {
 nav {
     height: 100px;
     width: 100%;
+    background-color: var(--color-1);
     display: flex;
     justify-content: space-around;
     align-items: center;
-    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 0 10px var(--color-1);
+
+    color: var(--color-light);
+    font-size: 1.2rem;
+}
+
+nav div:nth-child(1){
+    font-size: 1.8rem;
+}
+
+nav div:nth-child(2) a:nth-child(1){
+    margin-right: 20px;
+}
+
+.highlighted {
+    color: var(--color-5);
 }
 
 header {
