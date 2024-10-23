@@ -57,3 +57,5 @@ Sensor data collected from `Arduino IDE/test_sensors.ino`:
 - Gyro: -0.18, -0.07, 0.00 dps
 - Humidity: 51.21%
 - Microphone: 626
+
+## inertial navigation
