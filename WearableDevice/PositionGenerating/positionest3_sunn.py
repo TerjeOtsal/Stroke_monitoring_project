@@ -1,131 +1,93 @@
 import numpy as np
 import pandas as pd
-from scipy.linalg import block_diag
-from pykalman import KalmanFilter
 import matplotlib.pyplot as plt
-import math
+from mpl_toolkits.mplot3d import Axes3D
 
-# Steg 1: Les sensordata fra CSV-fil
+# Load sensor data from CSV file
 df = pd.read_csv('sensor_data3.csv')
 
-# Ekstraher nødvendige kolonner
+# Extract necessary columns
 timestamps = df['timestamp'].values
 acc_data = df[['acc_x', 'acc_y', 'acc_z']].values
 gyro_data = df[['gyro_x', 'gyro_y', 'gyro_z']].values
-mag_data = df[['mag_x', 'mag_y', 'mag_z']].values  # Magnetometer data
+mag_data = df[['mag_x', 'mag_y', 'mag_z']].values
 
-# Beregn tidsdifferanser mellom målinger (delta_t)
-delta_t = np.diff(timestamps)
+# Constants
+dt = np.mean(np.diff(timestamps))  # Sample time interval
 
-# Gravitasjon (antatt konstant langs z-aksen)
-gravity = np.array([0, 0, 9.81])
+# Initialize arrays for roll, pitch, yaw
+roll = np.zeros(len(timestamps))
+pitch = np.zeros(len(timestamps))
+yaw = np.zeros(len(timestamps))
 
-# Startverdier
-initial_velocity = np.array([0, 0, 0])  # Start med null hastighet
-initial_position = np.array([0, 0, 0])  # Start med ukjent posisjon
-positions = [initial_position]  # Liste for å lagre posisjonene
+# Complementary Filter coefficients
+alpha = 0.98
 
-# Funksjon for å oppdatere posisjon fra akselerasjon
-def update_position(acc, prev_vel, prev_pos, dt):
-    # Beregn hastighet (ved å integrere akselerasjon)
-    new_vel = prev_vel + acc * dt
-    # Beregn posisjon (ved å integrere hastighet)
-    new_pos = prev_pos + new_vel * dt
-    return new_vel, new_pos
-
-# Funksjon for å beregne orientering fra gyroskop og magnetometer
-def update_orientation(gyro, mag, dt, prev_orientation):
-    # Beregn yaw (retningen) fra magnetometeret
-    yaw = math.atan2(mag[1], mag[0])  # Yaw fra magnetometeret (bare en enkel beregning)
+# Step 1: Calculate roll and pitch using accelerometer data
+for i in range(1, len(timestamps)):
+    acc_x, acc_y, acc_z = acc_data[i]
     
-    # Oppdater pitch og roll fra gyroskop (integrasjon av vinkelhastighet)
-    pitch = prev_orientation[0] + gyro[0] * dt
-    roll = prev_orientation[1] + gyro[1] * dt
-    return np.array([pitch, roll, yaw])
+    # Using the second algorithm to compute roll and pitch
+    roll[i] = np.arctan2(acc_y, acc_z)
+    pitch[i] = np.arctan2(-acc_x, np.sqrt(acc_y**2 + acc_z**2))
 
-# Funksjon for å kompensere for gravitasjon basert på orientering
-def compensate_gravity(acc, orientation):
-    pitch, roll, _ = orientation  # Vi ignorerer yaw for gravitasjon
-    # Rotasjonsmatrise for å kompensere gravitasjon
-    rotation_matrix = np.array([
-        [math.cos(pitch), 0, math.sin(pitch)],
-        [0, 1, 0],
-        [-math.sin(pitch), 0, math.cos(pitch)]
-    ])
+# Step 2: Calculate roll and pitch using gyroscope data
+gyr_roll = np.zeros(len(timestamps))
+gyr_pitch = np.zeros(len(timestamps))
+
+for i in range(1, len(timestamps)):
+    gyro_x, gyro_y, gyro_z = gyro_data[i]
     
-    # Kompensere gravitasjon i kroppen ved å bruke rotasjonsmatrisen
-    corrected_acc = np.dot(rotation_matrix, acc - gravity)
-    return corrected_acc
+    # Integrate gyroscope data to get angles
+    gyr_roll[i] = gyr_roll[i-1] + gyro_y * dt
+    gyr_pitch[i] = gyr_pitch[i-1] + gyro_x * dt
 
-# Steg 2: Beregn posisjon basert på akselerometer- og gyrodata
-orientation = np.array([0, 0, 0])  # Start med null orientering (pitch, roll, yaw)
+# Step 3: Apply complementary filter
+filtered_roll = alpha * gyr_roll + (1 - alpha) * roll
+filtered_pitch = alpha * gyr_pitch + (1 - alpha) * pitch
 
-for i in range(1, len(acc_data)):
-    dt = delta_t[i-1]
+# Step 4: Calculate yaw using magnetometer data
+for i in range(1, len(timestamps)):
+    mag_x, mag_y, mag_z = mag_data[i]
     
-    # Oppdater orienteringen basert på gyroskop og magnetometer
-    orientation = update_orientation(gyro_data[i], mag_data[i], dt, orientation)
+    # Calculate yaw
+    XH = mag_x * np.cos(filtered_pitch[i]) + mag_y * np.sin(filtered_pitch[i]) * np.sin(filtered_roll[i]) + mag_z * np.sin(filtered_pitch[i]) * np.cos(filtered_roll[i])
+    YH = mag_y * np.cos(filtered_roll[i]) + mag_z * np.sin(filtered_roll[i])
+    yaw[i] = np.arctan2(-YH, XH)
+
+# Step 5: Calculate linear acceleration
+linear_acc = np.zeros_like(acc_data)
+for i in range(len(timestamps)):
+    # Compensate for gravity
+    g = 9.81  # gravity in m/s^2
+    acc_x = acc_data[i, 0] - g * np.sin(pitch[i])  # compensate for gravity
+    acc_y = acc_data[i, 1] + g * np.cos(pitch[i]) * np.sin(roll[i])
+    acc_z = acc_data[i, 2] + g * np.cos(pitch[i]) * np.cos(roll[i])
     
-    # Kompenser akselerasjon for gravitasjon
-    acc_corrected = compensate_gravity(acc_data[i], orientation)
-    
-    # Oppdater posisjonen basert på den korrigerte akselerasjonen
-    velocity, position = update_position(acc_corrected, initial_velocity, positions[-1], dt)
-    
-    positions.append(position)
+    linear_acc[i] = [acc_x, acc_y, acc_z]
 
-positions = np.array(positions)
+# Step 6: Integrate acceleration to get velocity
+velocity = np.zeros_like(linear_acc)
+for i in range(1, len(timestamps)):
+    velocity[i] = velocity[i-1] + linear_acc[i] * dt
 
-# Steg 3: Kalman-filter for glatting
-transition_matrix = np.eye(6)  # Tilstandsmodellen (posisjon og hastighet)
-transition_matrix[:3, 3:] = np.eye(3) * np.mean(delta_t)  # Inkluder hastighetskomponenten
+# Step 7: Integrate velocity to get position
+position = np.zeros_like(velocity)
+for i in range(1, len(timestamps)):
+    position[i] = position[i-1] + velocity[i] * dt
 
-observation_matrix = np.zeros((3, 6))  # Målematrisen (vi observerer akselerasjon)
-observation_matrix[:, :3] = np.eye(3)
+# Step 8: Normalize the position data using Min-Max normalization
+min_vals = np.min(position, axis=0)
+max_vals = np.max(position, axis=0)
+normalized_position = (position - min_vals) / (max_vals - min_vals)
 
-# Starttilstander
-initial_state_mean = np.hstack([positions[0], np.zeros(3)])  # Bruk første observerte posisjon og null-hastighet
-
-# Kalman-filter konfigurering
-kf = KalmanFilter(
-    transition_matrices=transition_matrix,
-    observation_matrices=observation_matrix,
-    initial_state_mean=initial_state_mean,
-    observation_covariance=0.1 * np.eye(3),  # Måleusikkerhet
-    transition_covariance=0.1 * np.eye(6)    # Systemets usikkerhet
-)
-
-# Kjør Kalman-filter på posisjonsdata
-filtered_state_means, filtered_state_covariances = kf.filter(positions)
-
-# Ekstraher filtrerte posisjoner
-filtered_positions = filtered_state_means[:, :3]
-
-# Steg 4: Lagre de filtrerte posisjonene i en ny CSV-fil
-filtered_df = pd.DataFrame({
-    'timestamp': timestamps,  # Behold originale tidsstempler
-    'filtered_x': filtered_positions[:, 0],
-    'filtered_y': filtered_positions[:, 1],
-    'filtered_z': filtered_positions[:, 2]
-})
-
-filtered_df.to_csv('filtered_positions.csv', index=False)
-print("Filtrerte posisjoner er lagret i 'filtered_positions.csv'.")
-
-# Steg 5: Plot de filtrerte posisjonene i et 3D-plot
-fig = plt.figure()
+# Step 9: Plot the normalized position in 3D
+fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
-
-# Plot dataene i 3D
-x = filtered_df['filtered_x']
-y = filtered_df['filtered_y']
-z = filtered_df['filtered_z']
-ax.plot(x, y, z, label='Filtrert armposisjon')
-
-# Etiketter
-ax.set_xlabel('X posisjon (meter)')
-ax.set_ylabel('Y posisjon (meter)')
-ax.set_zlabel('Z posisjon (meter)')
-ax.set_title('Armens bevegelse i 3D over tid')
-
+ax.plot(normalized_position[:, 0], normalized_position[:, 1], normalized_position[:, 2], label='3D Trajectory', color='b')
+ax.set_xlabel('Normalized X Position')
+ax.set_ylabel('Normalized Y Position')
+ax.set_zlabel('Normalized Z Position')
+ax.set_title('Normalized 3D Position Plot')
+ax.legend()
 plt.show()
