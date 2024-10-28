@@ -1,6 +1,8 @@
+
 from flask import Flask, redirect, url_for, request, render_template, jsonify
 
 app = Flask(__name__)
+app.config['DEBUG'] = True  # Enable debug mode
 
 @app.route('/')
 def home():

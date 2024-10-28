@@ -9,8 +9,11 @@ How to start the app
 
 Note: Only while the environment is active can you install python packages to it
 
+4. Install the application package
+    $ pip install -e .
+
 4. Now run the flask app in debug mode with the following command:
-    $ flask run --debug
+    $ webapp
 
 
 Objectives: 
