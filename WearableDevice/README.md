@@ -59,3 +59,40 @@ Sensor data collected from `Arduino IDE/test_sensors.ino`:
 - Microphone: 626
 
 ## inertial navigation
+
+## Converting gyro, accelerometer and magnetometer to readable data
+https://forums.raspberrypi.com/viewtopic.php?t=127930
+
+- using euler angles means you'll have issues with the gimbal lock and singularities (https://en.wikipedia.org/wiki/Gimbal_lock)
+- the magnetometer needs some low pass filtering as it's pretty noisy (+- 1-3 degrees after conversion to angles)
+
+- Vurder complementary filter for relative position: 
+  - Relative orientation is the recovery of the position and orientation of one object relative to another. Depending on the direction there are three types of angular rate measurements:
+
+   Yaw: the horizontal rotation on a flat surface when seen the object from above.
+
+   Pitch: vertical rotation as seen the object from front.
+
+   Roll: horizontal rotation when seen the object from front.
+
+   Referansepunkt mobil, gps
+
+   Bruk Quaternion for fri bevegelse
+
+   INS (inertial navigation system) og startknapp for referanse
+
+   ## Environment
+
+   python3 -m venv rehabenv
+   source rehabenv/bin/activate
+
+/Users/sunnivajosefsen/Library/CloudStorage/OneDrive-OsloMet/Master/ACIT4035
+
+## Password keyring
+If you would like to delete a password stored in your system keyring, you can clear a stored password using the --delete-from-keyring command-line option:
+
+$ icloud --username=jappleseed@apple.com --delete-from-keyring
+
+https://github.com/john2zy/IMU-Position-Tracking
+
+https://github.com/xioTechnologies/Gait-Tracking/tree/main
