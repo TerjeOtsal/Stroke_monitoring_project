@@ -1,0 +1,39 @@
+<!-- templates/data.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Display</title>
+    <script>
+        async function fetchData() {
+            const response = await fetch('/data');
+            const data = await response.json();
+            const table = document.getElementById('data-table');
+
+            // Populate table
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                Object.values(row).forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                table.appendChild(tr);
+            });
+        }
+        window.onload = fetchData;
+    </script>
+</head>
+<body>
+    <h1>Data from CSV</h1>
+    <table border="1" id="data-table">
+        <tr>
+            <!-- Assuming headers like 'Column1', 'Column2' are known -->
+            <th>Column1</th>
+            <th>Column2</th>
+            <th>Column3</th>
+        </tr>
+    </table>
+</body>
+</html>
