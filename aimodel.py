@@ -6,7 +6,7 @@ from sklearn.metrics import classification_report, confusion_matrix
 import joblib
 
 # Load the labeled data
-data = pd.read_csv('labeled_stroke_data.csv')
+data = pd.read_csv('refined_synthetic_stroke_data_rounded.csv')
 
 # Separate features and labels
 X = data.drop(columns=['label'])

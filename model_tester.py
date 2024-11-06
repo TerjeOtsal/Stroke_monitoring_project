@@ -9,7 +9,7 @@ model = tf.keras.models.load_model('complex_stroke_movement_classifier.h5')
 scaler = joblib.load('scaler.joblib')
 
 # Load and preprocess the activity data
-activity_data = pd.read_csv('ACTIVITY.csv')
+activity_data = pd.read_csv('synthetic_sequence_unlabeled.csv')
 activity_data_scaled = scaler.transform(activity_data)
 
 # Define the same number of timesteps used during training
