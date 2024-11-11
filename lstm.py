@@ -2,14 +2,16 @@ import pandas as pd
 import numpy as np
 import joblib
 import tensorflow as tf
+from tensorflow import keras 
+from keras import regularizers
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 
 # Step 1: Load and Preprocess Data
-# Load the refined synthetic dataset
-data = pd.read_csv('refined_synthetic_stroke_data_rounded.csv')
+# Load the extended dataset with integer labels
+data = pd.read_csv('extended_labeled_stroke_data_int_labels.csv')
 
 # Separate features (X) and labels (y)
 X = data.drop(columns=['label'])
@@ -22,7 +24,7 @@ X_scaled = scaler.fit_transform(X)
 
 # Step 3: Reshape Data for CNN-LSTM Model
 # Define the number of timesteps for LSTM sequence processing
-timesteps = 20
+timesteps = 10
 
 # Reshape data into a 3D array: (samples, timesteps, features)
 X_reshaped = np.array([X_scaled[i:i + timesteps] for i in range(len(X_scaled) - timesteps)])
@@ -32,17 +34,34 @@ y_reshaped = y[timesteps:].values  # Adjust y to align with reshaped X
 # Use an 80-20 split for training and validation
 X_train, X_val, y_train, y_val = train_test_split(X_reshaped, y_reshaped, test_size=0.2, random_state=42)
 
-# Step 5: Define CNN-LSTM Model Architecture
-# This model includes Conv1D layers to learn spatial patterns, followed by LSTM layers to capture temporal dependencies
+# Step 5: Define CNN-LSTM Model Architecture with Enhanced Robustness
 model = tf.keras.Sequential([
+    # First Conv1D layer with Batch Normalization and Dropout
     tf.keras.layers.Conv1D(filters=64, kernel_size=3, activation='relu', input_shape=(timesteps, X_reshaped.shape[2])),
+    tf.keras.layers.BatchNormalization(),
     tf.keras.layers.MaxPooling1D(pool_size=2),
+    tf.keras.layers.Dropout(0.3),
+    
+    # Second Conv1D layer with Batch Normalization and Dropout
     tf.keras.layers.Conv1D(filters=32, kernel_size=3, activation='relu'),
+    tf.keras.layers.BatchNormalization(),
     tf.keras.layers.MaxPooling1D(pool_size=2),
-    tf.keras.layers.LSTM(50, activation='relu', return_sequences=True),
-    tf.keras.layers.LSTM(50, activation='relu'),
-    tf.keras.layers.Dense(50, activation='relu'),
-    tf.keras.layers.Dense(5, activation='softmax')  # Output layer for 5 classes
+    tf.keras.layers.Dropout(0.3),
+    
+    # First LSTM layer with L2 regularization and Batch Normalization
+    tf.keras.layers.LSTM(50, activation='relu', return_sequences=True, kernel_regularizer=regularizers.l2(0.01)),
+    tf.keras.layers.BatchNormalization(),
+    
+    # Second LSTM layer with L2 regularization and Batch Normalization
+    tf.keras.layers.LSTM(50, activation='relu', kernel_regularizer=regularizers.l2(0.01)),
+    tf.keras.layers.BatchNormalization(),
+    
+    # Dense layer with L2 regularization and Dropout
+    tf.keras.layers.Dense(50, activation='relu', kernel_regularizer=regularizers.l2(0.01)),
+    tf.keras.layers.Dropout(0.3),
+    
+    # Output layer for 5 classes with softmax activation
+    tf.keras.layers.Dense(5, activation='softmax')
 ])
 
 # Step 6: Compile the Model
@@ -51,7 +70,7 @@ model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=
 
 # Step 7: Train the Model
 # Train the model with specified number of epochs and batch size
-history = model.fit(X_train, y_train, epochs=100, validation_data=(X_val, y_val), batch_size=32, verbose=1)
+history = model.fit(X_train, y_train, epochs=75, validation_data=(X_val, y_val), batch_size=64, verbose=1)
 
 # Step 8: Evaluate the Model on Validation Data
 val_loss, val_accuracy = model.evaluate(X_val, y_val)
