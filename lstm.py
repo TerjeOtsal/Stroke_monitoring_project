@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 # Step 1: Load and Preprocess Data
 # Load the extended dataset with integer labels
-data = pd.read_csv('extended_labeled_stroke_data_int_labels.csv')
+data = pd.read_csv('combined_labeled_stroke_data.csv')
 
 # Separate features (X) and labels (y)
 X = data.drop(columns=['label'])
