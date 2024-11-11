@@ -1,16 +1,32 @@
 import pandas as pd
 
-# Load the CSV file
-data = pd.read_csv('combined_labeled_stroke_data.csv')
+def clean_csv(input_file, output_file, label_column='label'):
+    """
+    Cleans the CSV file by removing the 'Timestamp' column if it exists 
+    and dropping any rows without a corresponding label.
 
-# Check if 'timestamp' or any similar column name exists and drop it
-# Replace 'timestamp' with the exact column name if it’s different
-if 'heading' in data.columns:
-    data = data.drop(columns=['heading'])
-elif 'Heading' in data.columns:  # Check for other possible capitalizations
-    data = data.drop(columns=['Heading'])
+    Parameters:
+    - input_file: Path to the original CSV file.
+    - output_file: Path to save the cleaned CSV file.
+    - label_column: The name of the column that contains labels. Rows missing this column's value are removed.
+    """
+    # Load the CSV file
+    data = pd.read_csv(input_file)
+    
+    # Drop the 'Timestamp' column if it exists
+    if 'Timestamp' in data.columns:
+        data = data.drop(columns=['Timestamp'])
+        print("Removed 'Timestamp' column.")
 
-# Save the cleaned data to a new CSV file
-data.to_csv('combined_labeled_stroke_data.csv', index=False)
+    # Drop rows where the label column has missing values
+    initial_row_count = len(data)
+    data = data.dropna(subset=[label_column])
+    removed_rows = initial_row_count - len(data)
+    print(f"Removed {removed_rows} rows with missing labels in '{label_column}' column.")
 
-print("Timestamp column removed, and data saved as 'your_file_no_timestamp.csv'")
+    # Save the cleaned data to a new CSV file
+    data.to_csv(output_file, index=False)
+    print(f"Cleaned data saved to {output_file}.")
+
+# Usage
+clean_csv('activity2.csv', 'activity2.csv')

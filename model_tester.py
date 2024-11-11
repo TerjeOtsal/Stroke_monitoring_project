@@ -2,49 +2,49 @@ import pandas as pd
 import numpy as np
 import tensorflow as tf
 import joblib
-import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
 
-# Load the saved model and scaler
-model = tf.keras.models.load_model('cnn_stroke_movement_classifier.keras')
-scaler = joblib.load('scaler.joblib')
+def load_and_test_model(test_data_path):
+    # Load the saved model and scaler
+    loaded_model = tf.keras.models.load_model('ffnn_stroke_movement_classifier.keras')
+    loaded_scaler = joblib.load('scaler.joblib')
+    
+    # Load and preprocess the test data
+    test_data = pd.read_csv(test_data_path)
+    features = ['qw', 'qx', 'qy', 'qz', 'yaw', 'pitch', 'roll']
+    X_test = test_data[features]
+    y_test = test_data['label'] - 1  # Adjust labels to start from 0 for TensorFlow compatibility
+    
+    # Scale the test data using the loaded scaler
+    X_test_scaled = loaded_scaler.transform(X_test)
 
-# Define the number of timesteps used during training
-timesteps = 10
+    # Make predictions (without allowing the model to see labels)
+    y_test_pred = np.argmax(loaded_model.predict(X_test_scaled), axis=1)
+    
+    # Display predictions and plot distribution
+    class_names = ['Hand towards body', 'Hand down', 'Hand outwards', 'Hand upwards', 'Hand forward']
+    predicted_labels = [class_names[pred] for pred in y_test_pred]
+    predictions_df = pd.DataFrame({
+        'Predicted Class': y_test_pred,
+        'Predicted Label': predicted_labels
+    })
+    print(predictions_df.head())
 
-# Step 1: Load and Preprocess the Activity Data
-# Load the Activity.csv file (unlabeled)
-activity_data = pd.read_csv('Activity.csv')  # Replace with the actual path if needed
+    # Plot distribution of predicted classes
+    plt.figure(figsize=(10, 6))
+    predictions_df['Predicted Label'].value_counts().plot(kind='bar', color='skyblue')
+    plt.title('Distribution of Predicted Classes on Test Data')
+    plt.xlabel('Class')
+    plt.ylabel('Frequency')
+    plt.xticks(rotation=45)
+    plt.show()
 
-# Scale the activity data using the loaded scaler
-activity_data_scaled = scaler.transform(activity_data)
+    # Evaluate model's performance against true labels
+    test_loss, test_accuracy = loaded_model.evaluate(X_test_scaled, y_test)
+    print(f"Test Loss: {test_loss}, Test Accuracy: {test_accuracy}")
+    print("Test Classification Report:\n", classification_report(y_test, y_test_pred, target_names=class_names))
+    print("Test Confusion Matrix:\n", confusion_matrix(y_test, y_test_pred))
 
-# Reshape data to match the model’s expected input shape (samples, timesteps, features)
-activity_data_reshaped = np.array([activity_data_scaled[i:i + timesteps] for i in range(len(activity_data_scaled) - timesteps)])
-
-# Step 2: Make Predictions
-# Get model predictions for each time window in the Activity data
-predictions = np.argmax(model.predict(activity_data_reshaped), axis=1)
-
-# Map class numbers to labels for interpretation
-class_names = ['Hand towards body', 'Hand down', 'Hand outwards', 'Hand upwards', 'Hand forward']
-predicted_labels = [class_names[pred] for pred in predictions]
-
-# Step 3: Plot Predicted Classes Over Time
-plt.figure(figsize=(12, 6))
-plt.plot(range(len(predicted_labels)), predictions, marker='o', linestyle='-', color='b')
-plt.yticks(ticks=range(5), labels=class_names)
-plt.xlabel('Time Step (sequence)')
-plt.ylabel('Predicted Movement Class')
-plt.title('Predicted Movement Class Over Time for Activity Data')
-plt.grid(True)
-plt.tight_layout()
-plt.show()
-
-# Optional: Display predictions as a DataFrame for inspection
-predictions_df = pd.DataFrame({
-    'Time Step': range(len(predicted_labels)), 
-    'Predicted Class': predictions, 
-    'Predicted Label': predicted_labels
-})
-print(predictions_df.head())  # Display the first few predictions
+# Test the model on the new labeled test dataset
+load_and_test_model('combined_labeled_stroke_data3.csv')  # Replace with the actual file path if different
