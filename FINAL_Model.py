@@ -9,6 +9,8 @@ from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Define the class names once for global use
+class_names = ['Hand towards body', 'Hand down', 'Hand outwards', 'Hand upwards', 'Hand forward']
 
 # Step 1: Load and Combine Datasets
 data1 = pd.read_csv('combined_labeled_stroke_data.csv')
@@ -108,7 +110,6 @@ def evaluate_model(X_test_scaled, y_test):
     
     y_test_pred = np.argmax(loaded_model.predict(X_test_scaled), axis=1)
     
-    class_names = ['Hand towards body', 'Hand down', 'Hand outwards', 'Hand upwards', 'Hand forward']
     print("Classification Report on Test Data:\n", classification_report(y_test, y_test_pred, target_names=class_names))
     print("Confusion Matrix on Test Data:\n", confusion_matrix(y_test, y_test_pred))
 
@@ -123,10 +124,8 @@ def evaluate_model(X_test_scaled, y_test):
     plt.xticks(rotation=45)
     plt.show()
 
-  # Plotting the confusion matrix with a unique style
-  # Confusion Matrix
+    # Plot the confusion matrix
     cm = confusion_matrix(y_test, y_test_pred)
-
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='g', cmap='coolwarm', xticklabels=class_names, yticklabels=class_names,
                 cbar_kws={'label': 'Number of Predictions'}, linewidths=0.5, linecolor='black')
@@ -139,3 +138,50 @@ def evaluate_model(X_test_scaled, y_test):
     plt.show()
 
 evaluate_model(X_test_scaled, y_test)
+
+# Step 9: Test on a New CSV File
+def test_on_new_csv(test_data_path):
+    # Load model and scaler
+    loaded_model = tf.keras.models.load_model('ffnn_stroke_movement_classifier_v3.keras')
+    loaded_scaler = joblib.load('scaler.joblib')
+    
+    # Load test data and preprocess
+    test_data = pd.read_csv(test_data_path)
+    if 'label' in test_data.columns:
+        y_true = test_data['label'] - 1  # True labels (if available)
+    else:
+        y_true = None
+    
+    # Ensure feature columns exist and process the data
+    X_test_new = test_data[features].replace([np.inf, -np.inf], np.nan).fillna(0)
+    X_test_new_scaled = loaded_scaler.transform(X_test_new)
+    
+    # Predict
+    y_pred_new = np.argmax(loaded_model.predict(X_test_new_scaled), axis=1)
+    predicted_labels = [class_names[pred] for pred in y_pred_new]
+    
+    # Display predictions sequentially
+    plt.figure(figsize=(12, 6))
+    plt.plot(range(len(y_pred_new)), y_pred_new, marker='o', color='skyblue')
+    plt.title('Sequential Predictions on New Test Data')
+    plt.xlabel('Index')
+    plt.ylabel('Predicted Class')
+    plt.yticks(ticks=range(len(class_names)), labels=class_names)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+    
+    if y_true is not None:
+        # Evaluate if true labels are available
+        print("Classification Report:\n", classification_report(y_true, y_pred_new, target_names=class_names))
+        cm = confusion_matrix(y_true, y_pred_new)
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, fmt='g', cmap='coolwarm', xticklabels=class_names, yticklabels=class_names)
+        plt.title('Confusion Matrix for New Data')
+        plt.xlabel('Predicted Class')
+        plt.ylabel('True Class')
+        plt.tight_layout()
+        plt.show()
+
+# Test the model on a new CSV file
+test_on_new_csv('BatteryTest2.csv')  # Replace with the actual file path if different

@@ -18,15 +18,9 @@ def clean_csv(input_file, output_file, label_column='label'):
         data = data.drop(columns=['Timestamp'])
         print("Removed 'Timestamp' column.")
 
-    # Drop rows where the label column has missing values
-    initial_row_count = len(data)
-    data = data.dropna(subset=[label_column])
-    removed_rows = initial_row_count - len(data)
-    print(f"Removed {removed_rows} rows with missing labels in '{label_column}' column.")
-
     # Save the cleaned data to a new CSV file
     data.to_csv(output_file, index=False)
     print(f"Cleaned data saved to {output_file}.")
 
 # Usage
-clean_csv('activity2.csv', 'activity2.csv')
+clean_csv('BatteryTest.csv', 'BatteryTest2.csv')
