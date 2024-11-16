@@ -13,8 +13,8 @@ import seaborn as sns
 class_names = ['Hand towards body', 'Hand down', 'Hand outwards', 'Hand upwards', 'Hand forward']
 
 # Step 1: Load and Combine Datasets
-data1 = pd.read_csv('combined_labeled_stroke_data.csv')
-data2 = pd.read_csv('combined_labeled_stroke_data3.csv')
+data1 = pd.read_csv('used csvfiles\combined_labeled_stroke_data.csv')
+data2 = pd.read_csv('used csvfiles\combined_labeled_stroke_data3.csv')
 
 # Concatenate datasets and shuffle
 combined_data = pd.concat([data1, data2], ignore_index=True).sample(frac=1, random_state=42)
@@ -184,4 +184,4 @@ def test_on_new_csv(test_data_path):
         plt.show()
 
 # Test the model on a new CSV file
-test_on_new_csv('BatteryTest2.csv')  # Replace with the actual file path if different
+test_on_new_csv('used csvfiles\BatteryTest2.csv')  # Replace with the actual file path if different

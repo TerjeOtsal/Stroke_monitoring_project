@@ -81,4 +81,4 @@ def load_and_test_model(test_data_path):
         print("No true labels available for evaluation; only predictions are displayed.")
 
 # Run the model on the test dataset
-load_and_test_model('BatteryTest2.csv')  # Replace with the actual path to your test file
+load_and_test_model('used csvfiles\BatteryTest2.csv')  # Replace with the actual path to your test file
