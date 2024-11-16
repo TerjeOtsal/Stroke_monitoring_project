@@ -81,6 +81,10 @@ https://forums.raspberrypi.com/viewtopic.php?t=127930
 
    INS (inertial navigation system) og startknapp for referanse
 
+   When tracking position based on accelerometer data using dead reckoning, drift accumulates quadratically, meaning that the speed of drift increases proportionally to time passed.
+
+   Aceinna - openIMU
+
    ## Environment
 
    python3 -m venv rehabenv

@@ -1,0 +1,44 @@
+<html lang="en"></html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web App</title>
+    <link rel="stylesheet" href="static/styles.css">
+</head>
+<body>
+    <nav>
+        <div>Stroke Striders</div>
+        <div>
+            <a href="{{ url_for('activities') }}">Activities</a>
+            <a href="{{ url_for('home') }}" class="highlighted">Raw Data</a>
+        </div>
+    </nav>
+
+    <header>
+        <h2>Raw data</h2>
+    </header>
+
+    <main>
+        <div class="chart-container">
+            <h3>Accelerometer</h3>
+            <canvas id="accelChart"></canvas>
+        </div>
+        
+        <div class="chart-container">
+            <h3>Gyroscope</h3>
+            <canvas id="gyroChart"></canvas>
+        </div>
+    
+        <div class="chart-container">
+            <h3>Magnetometer</h3>
+            <canvas id="magnetoChart"></canvas>
+        </div>
+    </main>
+
+    <footer>
+        This is the footer
+    </footer>
+
+    <script src="static/scripts.js"></script>
+</body>
+</html>
