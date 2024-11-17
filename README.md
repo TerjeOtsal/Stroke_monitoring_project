@@ -64,3 +64,45 @@ Secondary scripts : model_tester.py test the trained model on new datasets
 Timeremove.py removes timestamp. can easily me modified to remove other columns 
 Lstm.py attempt on temporal algorithm Long-short term memory algorithm
 
+### Sensor Calibration and Orientation data logging
+#### Overview
+This project involves calibrating the adafruit nRF52840 sensors (accelerometer, gyroscope, magnetometer) and using a custom sketch to generate and log orientation data (quaternions and Euler angles) onto an SD card. 
+The data is stored in a CSV format for further analysis.
+
+### Main files
+-  `calibration.ino`:  Handles sensor calibration.
+-  `Data_collection_with_quaternions.ino`: Logs orientation data to an SD card
+
+#### Hardware used
+-  Arduino adafruit feather sense nRF 52840
+-  9-DoF IMU sensor (LSM6D33 & LIS3MDL)
+-  SD-card module (SD breakout board)
+-  MircoSD card 16GB (FAT32 format)
+
+#### Software
+-  Arduino IDE
+-  MotinoCal - Windows
+-  Libraries: 
+    - Adafruit sensor calibration
+    - Adafruit AHRS (Sensor Fusion)  
+    -  Adafruit Unified Sensor
+    -  SdFat
+
+#### HOW TO: **Store calibrations**
+1. Open the `calibration.ino` sketch (provided in the Adafruit Sensor Calibration library).
+2. Upload the sketch to your board.    
+3. Open MotionCal software
+4. Connect to the COM-port board is connected to
+5. Move sensor untill able to store calibration on to the board
+
+#### HOW TO: Logg orientation data to SD-card
+1. Upload `Data_collection_with_quaternions.ino` to the board
+2. Modify parameters: 
+    -  Change "#define CHIP_SELECTED_PIN A5" to match hardware wiring
+    -  Change "char dataFileName[]" to the desired file name for storing data.
+    -  Change "collectionDuration" to set time duration for data logging 
+3. After runnig, remove SD-card and check stored data
+
+
+
+
