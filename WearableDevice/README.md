@@ -43,7 +43,7 @@ The sensor data will be displayed in the next section.
 
 ## 3. Sensor Data
 
-Sensor data collected from `Arduino IDE/test_sensors.ino`:
+Sensor data collected from `Arduino IDE/test_sensors.ino`. Below are example readings:
 
 **Feather Sense Sensor Demo:**
 
@@ -57,5 +57,3 @@ Sensor data collected from `Arduino IDE/test_sensors.ino`:
 - Gyro: -0.18, -0.07, 0.00 dps
 - Humidity: 51.21%
 - Microphone: 626
-
-## inertial navigation
