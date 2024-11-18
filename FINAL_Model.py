@@ -131,4 +131,6 @@ def load_and_test_model(test_data_path):
     print("Test Confusion Matrix:\n", confusion_matrix(y_test_reshaped, y_test_pred))
 
 # Example usage:
-# load_and_test_model('new_test_data.csv')  # Replace with your test CSV file path
+load_and_test_model('C:\Stroke_monitoring_project\ACTIVITY.csv')  # Replace with your test CSV file path
+
+
