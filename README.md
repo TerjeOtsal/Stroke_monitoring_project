@@ -70,7 +70,7 @@ This project involves calibrating the adafruit nRF52840 sensors (accelerometer, 
 The data is stored in a CSV format for further analysis.
 
 ### Main files
--  `calibration.ino`:  Handles sensor calibration.
+-  `calibration.ino`:  Handles sensor calibration. (Used to store calibration, not nessesary if device is calibrated)
 -  `Data_collection_with_quaternions.ino`: Logs orientation data to an SD card
 
 #### Hardware used
