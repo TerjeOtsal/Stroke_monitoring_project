@@ -5,7 +5,7 @@ import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.utils.class_weight import compute_class_weight
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, precision_score, recall_score, f1_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -13,20 +13,30 @@ import seaborn as sns
 class_names = ['Hand towards body', 'Hand down', 'Hand outwards', 'Hand upwards', 'Hand forward']
 
 # Step 1: Load and Combine Datasets
-data1 = pd.read_csv('used csvfiles\combined_labeled_stroke_data.csv')
-data2 = pd.read_csv('used csvfiles\combined_labeled_stroke_data3.csv')
+data1 = pd.read_csv('used csvfiles/combined_labeled_stroke_data.csv')
+data2 = pd.read_csv('used csvfiles/combined_labeled_stroke_data3.csv')
 
 # Concatenate datasets and shuffle
-combined_data = pd.concat([data1, data2], ignore_index=True).sample(frac=1, random_state=42)
+combined_data = pd.concat([data1, data2], ignore_index=True)
+
+# Function to balance classes by sampling equal numbers from each class
+def balance_classes(data, label_column):
+    groups = data.groupby(label_column)
+    min_size = groups.size().min()
+    balanced_data = groups.apply(lambda x: x.sample(min_size, random_state=42)).reset_index(drop=True)
+    return balanced_data
+
+# Balance the dataset
+balanced_data = balance_classes(combined_data, label_column='label')
 
 # Separate features and labels
 features = ['qw', 'qx', 'qy', 'qz', 'yaw', 'pitch', 'roll']
-X = combined_data[features]
-y = combined_data['label'] - 1  # Adjust labels to start from 0
+X = balanced_data[features]
+y = balanced_data['label'] - 1  # Adjust labels to start from 0
 
 # Step 2: Train, Validation, and Test Split
-X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.3, random_state=42)
-X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42)
+X_temp, X_test, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+X_train, X_val, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp)
 
 # Remove NaN and infinite values
 X_train = X_train.replace([np.inf, -np.inf], np.nan).fillna(0)
@@ -48,15 +58,23 @@ class_weight_dict = {i: class_weights[i] for i in range(len(class_weights))}
 # Step 5: Define a Model with Gradient Clipping and Lower Learning Rate
 def create_ffnn_model(input_shape):
     model = tf.keras.Sequential([
+        # First hidden layer
         tf.keras.layers.Dense(64, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001), input_shape=input_shape),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.Dropout(0.4),
         
+        # Second hidden layer
         tf.keras.layers.Dense(32, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
         tf.keras.layers.BatchNormalization(),
         tf.keras.layers.Dropout(0.3),
         
-        tf.keras.layers.Dense(5, activation='softmax')
+        # Third hidden layer
+        tf.keras.layers.Dense(16, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(0.001)),
+        tf.keras.layers.BatchNormalization(),
+        tf.keras.layers.Dropout(0.2),
+        
+        # Output layer
+        tf.keras.layers.Dense(5, activation='softmax')  # Output layer with 5 classes
     ])
     
     model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4, clipvalue=1.0), 
@@ -67,10 +85,10 @@ def create_ffnn_model(input_shape):
 model = create_ffnn_model((X_train_scaled.shape[1],))
 
 # Learning rate scheduler
-lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=5, min_lr=1e-6)
+lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=25, min_lr=1e-6)
 
 # Early stopping callback
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True)
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=35, restore_best_weights=True)
 
 # Step 6: Train the Model with Class Weights
 history = model.fit(X_train_scaled, y_train_array, epochs=2000, validation_data=(X_val_scaled, y_val), 
@@ -78,7 +96,7 @@ history = model.fit(X_train_scaled, y_train_array, epochs=2000, validation_data=
                     callbacks=[early_stopping, lr_scheduler])
 
 # Save the trained model
-model.save('ffnn_stroke_movement_classifier_v3.keras')
+model.save('ffnn_stroke_movement_classifier_v4.keras')
 print("Model and scaler saved.")
 
 # Step 7: Plot Training and Validation Accuracy and Loss
@@ -104,27 +122,47 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# Step 8: Evaluate the Model on Test Data
-def evaluate_model(X_test_scaled, y_test):
-    loaded_model = tf.keras.models.load_model('ffnn_stroke_movement_classifier_v3.keras')
-    
-    y_test_pred = np.argmax(loaded_model.predict(X_test_scaled), axis=1)
-    
-    print("Classification Report on Test Data:\n", classification_report(y_test, y_test_pred, target_names=class_names))
-    print("Confusion Matrix on Test Data:\n", confusion_matrix(y_test, y_test_pred))
+def generate_performance_matrix(y_true, y_pred, class_names):
+    """
+    Generates a DataFrame displaying precision, recall, F1 score, and support for each class.
+    Includes overall accuracy as a separate metric.
+    """
+    # Generate classification report as a dictionary
+    report = classification_report(y_true, y_pred, target_names=class_names, output_dict=True)
+    performance_df = pd.DataFrame(report).transpose()
+    performance_df = performance_df[['precision', 'recall', 'f1-score', 'support']]
+    return performance_df, report['accuracy']
+ 
 
-    predicted_labels = [class_names[pred] for pred in y_test_pred]
-    predictions_df = pd.DataFrame({'Predicted Class': y_test_pred, 'Predicted Label': predicted_labels})
+# Step 8: Evaluate the Model on Test Data
+def evaluate_model_with_matrix(X_test_scaled, y_test):
+    """
+    Evaluates the model on test data, generates and displays a performance matrix and confusion matrix.
+    """
+    # Load the model
+    loaded_model = tf.keras.models.load_model('ffnn_stroke_movement_classifier_v4.keras')
     
-    plt.figure(figsize=(10, 6))
-    predictions_df['Predicted Label'].value_counts().plot(kind='bar', color='skyblue')
-    plt.title('Distribution of Predicted Classes on Test Data')
-    plt.xlabel('Class')
-    plt.ylabel('Frequency')
-    plt.xticks(rotation=45)
+    # Make predictions
+    y_test_pred = np.argmax(loaded_model.predict(X_test_scaled), axis=1)
+
+    # Generate performance matrix and overall accuracy
+    performance_matrix, overall_accuracy = generate_performance_matrix(y_test, y_test_pred, class_names)
+    print("\nPerformance Matrix:\n")
+    print(performance_matrix)
+
+    # Plot the performance matrix
+    plt.figure(figsize=(12, 8))
+    sns.heatmap(performance_matrix.iloc[:-1, :-1], annot=True, fmt=".2f", cmap="coolwarm", linewidths=0.5, cbar_kws={'label': 'Score'})
+    plt.title('Performance Matrix Heatmap', fontsize=16)
+    plt.xlabel('Metrics', fontsize=12)
+    plt.ylabel('Classes', fontsize=12)
+    plt.tight_layout()
+
+    # Add overall accuracy annotation
+    plt.figtext(0.5, -0.1, f'Overall Accuracy: {overall_accuracy * 100:.2f}%', ha='center', fontsize=12, color='black')
     plt.show()
 
-    # Plot the confusion matrix
+    # Generate and plot confusion matrix
     cm = confusion_matrix(y_test, y_test_pred)
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='g', cmap='coolwarm', xticklabels=class_names, yticklabels=class_names,
@@ -137,51 +175,6 @@ def evaluate_model(X_test_scaled, y_test):
     plt.tight_layout()
     plt.show()
 
-evaluate_model(X_test_scaled, y_test)
+# Test the model and generate the performance matrix
+evaluate_model_with_matrix(X_test_scaled, y_test)
 
-# Step 9: Test on a New CSV File
-def test_on_new_csv(test_data_path):
-    # Load model and scaler
-    loaded_model = tf.keras.models.load_model('ffnn_stroke_movement_classifier_v3.keras')
-    loaded_scaler = joblib.load('scaler.joblib')
-    
-    # Load test data and preprocess
-    test_data = pd.read_csv(test_data_path)
-    if 'label' in test_data.columns:
-        y_true = test_data['label'] - 1  # True labels (if available)
-    else:
-        y_true = None
-    
-    # Ensure feature columns exist and process the data
-    X_test_new = test_data[features].replace([np.inf, -np.inf], np.nan).fillna(0)
-    X_test_new_scaled = loaded_scaler.transform(X_test_new)
-    
-    # Predict
-    y_pred_new = np.argmax(loaded_model.predict(X_test_new_scaled), axis=1)
-    predicted_labels = [class_names[pred] for pred in y_pred_new]
-    
-    # Display predictions sequentially
-    plt.figure(figsize=(12, 6))
-    plt.plot(range(len(y_pred_new)), y_pred_new, marker='o', color='skyblue')
-    plt.title('Sequential Predictions on New Test Data')
-    plt.xlabel('Index')
-    plt.ylabel('Predicted Class')
-    plt.yticks(ticks=range(len(class_names)), labels=class_names)
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
-    
-    if y_true is not None:
-        # Evaluate if true labels are available
-        print("Classification Report:\n", classification_report(y_true, y_pred_new, target_names=class_names))
-        cm = confusion_matrix(y_true, y_pred_new)
-        plt.figure(figsize=(8, 6))
-        sns.heatmap(cm, annot=True, fmt='g', cmap='coolwarm', xticklabels=class_names, yticklabels=class_names)
-        plt.title('Confusion Matrix for New Data')
-        plt.xlabel('Predicted Class')
-        plt.ylabel('True Class')
-        plt.tight_layout()
-        plt.show()
-
-# Test the model on a new CSV file
-test_on_new_csv('used csvfiles\BatteryTest2.csv')  # Replace with the actual file path if different
