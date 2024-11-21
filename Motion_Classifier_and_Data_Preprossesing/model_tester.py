@@ -36,22 +36,18 @@ def load_and_test_model(test_data_path):
     
     # Add predictions to the test data for display
     test_data['Predicted Label'] = predicted_labels
-    test_data['Predicted Class'] = y_test_pred
 
-    # Display sample predictions
-    print(test_data[['Predicted Label', 'Predicted Class']].head())
+    # Display sample predictions as class names
+    print("Sample Predictions (Class Names):")
+    print(test_data[['Predicted Label']].head())
 
     # Plot sequential predictions
     plt.figure(figsize=(10, 6))
-    plt.plot(range(len(test_data)), test_data['Predicted Class'], marker='o', linestyle='-', color='skyblue', label="Predicted Class")
+    plt.plot(range(len(test_data)), [class_names[pred] for pred in y_test_pred], marker='o', linestyle='-', color='skyblue', label="Predicted Class")
     plt.title('Predicted Movement Class Over Test Data (Sequential)')
     plt.xlabel('Index')
     plt.ylabel('Predicted Class')
-    
-    # Set 5 evenly spaced ticks to match class labels
-    tick_positions = np.linspace(0, len(test_data) - 1, num=5, dtype=int)
-    plt.xticks(tick_positions, labels=class_names, rotation=45)
-
+    plt.xticks(rotation=45)
     plt.legend()
     plt.tight_layout()
     plt.show()
@@ -81,4 +77,5 @@ def load_and_test_model(test_data_path):
         print("No true labels available for evaluation; only predictions are displayed.")
 
 # Run the model on the test dataset
-load_and_test_model('used csvfiles\BatteryTest2.csv')  # Replace with the actual path to your test file
+load_and_test_model('used csvfiles/BatteryTest2.csv')  # Replace with the actual path to your test file
+
